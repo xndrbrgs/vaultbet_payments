@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Mona_Sans, Inter } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import Navbar from "@/components/general/homepage/navbar";
+import ReactLenis from "lenis/react";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const monaSans = Mona_Sans({
+  variable: "--font-monaSans",
   subsets: ["latin"],
 });
 
@@ -61,25 +57,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ViewTransitions>
-      <html
-        lang="en"
-        className={cn(
-          "h-full",
-          "antialiased",
-          geistSans.variable,
-          geistMono.variable,
-          "font-sans",
-          inter.variable,
-        )}
-      >
-        <body className="min-h-full flex flex-col">
-          <ClerkProvider>
-            <Navbar />
-            {children}
-          </ClerkProvider>
-        </body>
-      </html>
-    </ViewTransitions>
+    <ClerkProvider>
+      <ViewTransitions>
+        <html
+          lang="en"
+          className={cn(
+            "h-full",
+            "antialiased",
+            monaSans.variable,
+            "font-sans",
+            inter.variable,
+          )}
+        >
+          <ReactLenis root>
+            <body className="min-h-full flex flex-col">
+              <Navbar />
+              {children}
+            </body>
+          </ReactLenis>
+        </html>
+      </ViewTransitions>
+    </ClerkProvider>
   );
 }

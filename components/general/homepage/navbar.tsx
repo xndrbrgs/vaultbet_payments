@@ -13,7 +13,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="flex items-center text-center justify-between px-[clamp(16px,32px)] py-3 border-b border-gray-200">
+    <nav className="flex items-center text-center justify-between px-[clamp(16px,32px)] py-2 border-b border-gray-200">
       <div className="flex items-center space-x-12">
         <div className="relative size-16">
           <Image
