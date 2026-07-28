@@ -71,7 +71,6 @@ export default function RootLayout({
         >
           <ReactLenis root>
             <body className="min-h-full flex flex-col">
-              <Navbar />
               {children}
             </body>
           </ReactLenis>

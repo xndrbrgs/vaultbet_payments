@@ -8,8 +8,74 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  id                   String        @id @default(cuid())
+  clerkUserId          String        @unique
+  email                String        @unique
+  firstName            String?
+  lastName             String?
+  username             String?
+  profileImage         String?
+  isAdmin              Boolean       @default(false)
+  sentTransfers        Transfer[]    @relation("SenderTransfers")
+  receivedTransfers    Transfer[]    @relation("ReceiverTransfers")
+  btcSentTransfers     BTCTransfer[] @relation("BTCSenderTransfers")
+  btcReceiverTransfers BTCTransfer[] @relation("BTCReceiverTransfers")
+}
+
+model Stores {
+  id           String @id @default(cuid())
+  name         String
+  btcpayStoreId String
+  btcpayApiKey  String // encrypted at rest, decrypted server-side only
+}
+
+model Transfer {
+  id                   String         @id @default(cuid())
+  amount               Float
+  description          String?
+  senderId             String
+  receiverId           String
+  ssn                  String
+  sender               User           @relation("SenderTransfers", fields: [senderId], references: [id])
+  receiver             User           @relation("ReceiverTransfers", fields: [receiverId], references: [id])
+  status               TransferStatus
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  transactionReference String? // For additional tracking if needed
+}
+
+model BTCTransfer {
+  id          String         @id @default(cuid())
+  amount      String
+  description String?
+  senderId    String
+  receiverId  String
+  sender      User           @relation("BTCSenderTransfers", fields: [senderId], references: [id])
+  receiver    User           @relation("BTCReceiverTransfers", fields: [receiverId], references: [id])
+  status      TransferStatus
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Payouts {
+  id          String         @id @default(cuid())
+  payoutId    String         @unique
+  amount      String
+  approvedBy  String?
+  description String?
+  name        String
+  address     String
+  status      TransferStatus
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  DELAYED
+  RESOLVED
+  SETTLED
 }

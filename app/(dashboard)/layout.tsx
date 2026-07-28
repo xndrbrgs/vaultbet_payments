@@ -1,4 +1,6 @@
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "VaultBet | Secure Payments & Digital Wallet Platform",
@@ -37,10 +39,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DashboardRootLayout({
+export default async function DashboardRootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/");
+  }
   return <>{children}</>;
 }
