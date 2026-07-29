@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { Link } from "next-view-transitions";
 
 // This is sample data.
 const data = {
@@ -77,7 +78,7 @@ export async function AppSidebar({
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       isActive={item.isActive}
-                      render={<a href={item.url} />}
+                      render={<Link href={item.url} />}
                     >
                       {item.title}
                     </SidebarMenuButton>

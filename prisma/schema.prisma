@@ -23,8 +23,9 @@ model User {
 }
 
 model Stores {
-  id           String @id @default(cuid())
-  name         String
+  id            String  @id @default(cuid())
+  name          String
+  storeImg      String?
   btcpayStoreId String
   btcpayApiKey  String // encrypted at rest, decrypted server-side only
 }

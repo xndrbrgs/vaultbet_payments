@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ["picsum.photos"],
+    domains: ["picsum.photos", "i.ibb.co"],
   },
 };
 

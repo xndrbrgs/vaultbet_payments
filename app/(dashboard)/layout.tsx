@@ -1,6 +1,23 @@
 import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Toaster } from "@/components/ui/toast";
+
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import BreadcrumbClient from "@/components/general/dashboard/BreadcrumbClient";
+import HeaderSection from "@/components/general/dashboard/HeaderSection";
 
 export const metadata: Metadata = {
   title: "VaultBet | Secure Payments & Digital Wallet Platform",
@@ -49,5 +66,30 @@ export default async function DashboardRootLayout({
   if (!userId) {
     redirect("/");
   }
-  return <>{children}</>;
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbClient />
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
+        <HeaderSection />
+        <main className="px-4">{children}</main>
+        <Toaster />
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }

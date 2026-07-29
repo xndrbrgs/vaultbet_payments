@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { Mona_Sans, Inter } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
 import "./globals.css";
-import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
-import Navbar from "@/components/general/homepage/navbar";
 import ReactLenis from "lenis/react";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 const monaSans = Mona_Sans({
   variable: "--font-monaSans",
@@ -61,18 +59,10 @@ export default function RootLayout({
       <ViewTransitions>
         <html
           lang="en"
-          className={cn(
-            "h-full",
-            "antialiased",
-            monaSans.variable,
-            "font-sans",
-            inter.variable,
-          )}
+          className={`${inter.variable} ${monaSans.variable} h-full antialiased`}
         >
           <ReactLenis root>
-            <body className="min-h-full flex flex-col">
-              {children}
-            </body>
+            <body>{children}</body>
           </ReactLenis>
         </html>
       </ViewTransitions>

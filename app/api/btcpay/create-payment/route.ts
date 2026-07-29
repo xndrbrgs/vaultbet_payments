@@ -1,18 +1,36 @@
-import { saveBTCPayment } from "@/lib/actions/btc-actions";
+import { saveBTCPayment } from "@/lib/actions/server/btc-actions";
+import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-const BTCPAY_API_KEY = process.env.BTCPAY_API_KEY!;
 const BTCPAY_HOST = process.env.BTCPAY_HOST!;
-const BTCPAY_STORE_ID = process.env.BTCPAY_STORE_ID!;
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, description } = await req.json();
+    const { amount, description, storeId } = await req.json();
 
-    const invoiceRes = await fetch(`${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/invoices`, {
+    console.log("Received create-payment request with data:", { amount, description, storeId });
+
+    if (!storeId) {
+      return NextResponse.json(
+        { error: "storeId is required" },
+        { status: 400 },
+      );
+    }
+
+    const store = await prisma.stores.findUnique({
+      where: { id: storeId },
+    });
+
+    console.log("Fetched store from database:", store);
+
+    if (!store) {
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+    }
+
+    const invoiceRes = await fetch(`${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/invoices`, {
       method: "POST",
       headers: {
-        Authorization: `token ${BTCPAY_API_KEY}`,
+        Authorization: `token ${store.btcpayApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -35,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     const paymentData = await invoiceRes.json();
     console.log("BTCPay invoice created:", paymentData);
-    await saveBTCPayment(paymentData);
+    // await saveBTCPayment(paymentData);
 
     return NextResponse.json({
       checkoutLink: paymentData.checkoutLink,  // <- use this to redirect the user
