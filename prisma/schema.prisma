@@ -15,19 +15,32 @@ model User {
   lastName             String?
   username             String?
   profileImage         String?
-  isAdmin              Boolean       @default(false)
+  isAdmin              Boolean       @default(false) // global platform admin (can access every store)
   sentTransfers        Transfer[]    @relation("SenderTransfers")
   receivedTransfers    Transfer[]    @relation("ReceiverTransfers")
   btcSentTransfers     BTCTransfer[] @relation("BTCSenderTransfers")
   btcReceiverTransfers BTCTransfer[] @relation("BTCReceiverTransfers")
+  storeAdminships      StoreAdmin[]
 }
 
 model Stores {
-  id            String  @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String
   storeImg      String?
   btcpayStoreId String
-  btcpayApiKey  String // encrypted at rest, decrypted server-side only
+  btcpayApiKey  String       // encrypted at rest, decrypted server-side only
+  admins        StoreAdmin[]
+}
+
+model StoreAdmin {
+  id        String   @id @default(cuid())
+  userId    String
+  storeId   String
+  user      User     @relation(fields: [userId], references: [id])
+  store     Stores   @relation(fields: [storeId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, storeId])
 }
 
 model Transfer {

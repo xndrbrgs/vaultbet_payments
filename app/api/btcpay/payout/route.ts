@@ -1,16 +1,27 @@
 // app/api/btcpay/payout/route.ts
+import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-const BTCPAY_API_KEY = process.env.BTCPAY_API_KEY!;
 const BTCPAY_HOST = process.env.BTCPAY_HOST!;
-const BTCPAY_STORE_ID = process.env.BTCPAY_STORE_ID!;
 
 export async function POST(req: NextRequest) {
     try {
-        const { amount, recipientAddress, description, recipientEmail, personName } = await req.json();
+        const { amount, recipientAddress, description, recipientEmail, personName, storeId } = await req.json();
 
-        if (!amount || !recipientAddress || !description || !recipientEmail) {
+        console.log("Received redeem request with data:", { amount, description, storeId, recipientAddress, recipientEmail, personName });
+
+        if (!amount || !recipientAddress || !description || !recipientEmail || !storeId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        const store = await prisma.stores.findUnique({
+            where: { id: storeId },
+        });
+
+        console.log("Fetched store from database:", store);
+
+        if (!store) {
+            return NextResponse.json({ error: "Store not found" }, { status: 404 });
         }
 
         // Determine payment method automatically
@@ -38,17 +49,18 @@ export async function POST(req: NextRequest) {
 
         // 1️⃣ Create Pull Payment
         const poolRes = await fetch(
-            `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/pull-payments`,
+            `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/pull-payments`,
             {
                 method: "POST",
                 headers: {
-                    Authorization: `token ${BTCPAY_API_KEY}`,
+                    Authorization: `token ${store.btcpayApiKey}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     name: `${personName} - ${recipientEmail}`,
                     description: description,
                     amount,
+                    "BOLT11Expiration": 0,
                     currency: "USD",
                     // autoApproveClaims: true, // auto-execute payouts
                     paymentMethod,           // must match payout
@@ -71,7 +83,7 @@ export async function POST(req: NextRequest) {
             {
                 method: "POST",
                 headers: {
-                    Authorization: `token ${BTCPAY_API_KEY}`,
+                    Authorization: `token ${store.btcpayApiKey}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({

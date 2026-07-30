@@ -21,7 +21,7 @@ import { Link } from "next-view-transitions";
 const data = {
   navMain: [
     {
-      title: "Your Account",
+      title: "Services",
       items: [
         {
           title: "Purchases",
@@ -51,6 +51,16 @@ const data = {
         {
           title: "Affiliate/Split",
           url: "/dashboard/affiliate-split",
+        },
+      ],
+    },
+    {
+      title: "Your Account",
+      url: "#",
+      items: [
+        {
+          title: "Settings",
+          url: "#",
         },
       ],
     },
