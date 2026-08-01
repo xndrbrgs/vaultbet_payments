@@ -11,6 +11,7 @@ export default function ApproveButton({
   amount,
   description,
   destination,
+  storeId,
 }: {
   payoutId: string;
   name: string;
@@ -18,6 +19,7 @@ export default function ApproveButton({
   amount: string;
   description: string;
   destination: string;
+  storeId: string;
 }) {
   const [loading, setLoading] = useState(false);
   console.log(payoutId, name, amount, description, destination, approvedBy);
@@ -31,7 +33,8 @@ export default function ApproveButton({
         amount,
         description,
         destination,
-        approvedBy
+        approvedBy,
+        storeId,
       );
       alert("Payout approved successfully!");
       window.location.reload();

@@ -243,10 +243,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                               <SelectValue placeholder="Select amount" />
                             </SelectTrigger>
                             <SelectContent>
-                              {[
-                                1, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 200,
-                                300,
-                              ].map((value) => (
+                              {[1, 5, 10, 300, 1000].map((value) => (
                                 <SelectItem
                                   key={value}
                                   value={value.toString()}

@@ -20,6 +20,6 @@ export default async function DashboardPage() {
       </>
     );
   } else {
-    return <div>ADMIN VIEW ONLY</div>;
+    return <div>ADMIN VIEW</div>;
   }
 }

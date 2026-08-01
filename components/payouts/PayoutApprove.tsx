@@ -1,4 +1,7 @@
-import { getStorePayouts } from "@/lib/actions/server/btc-actions";
+import {
+  getStoreInfo,
+  getStorePayouts,
+} from "@/lib/actions/server/btc-actions";
 import {
   Card,
   CardContent,
@@ -17,13 +20,23 @@ import {
 import { currentUser } from "@clerk/nextjs/server";
 import ApproveButton from "./PayoutButton";
 import DeleteApprove from "./DeleteApprove";
+import { getStoreAdmin } from "@/lib/actions/user-actions";
 
 const PayoutApprove = async () => {
-  const payouts = await getStorePayouts();
   const user = await currentUser();
   if (!user) {
     return <div>User not found</div>;
   }
+
+  const admin = await getStoreAdmin({ userId: user.id });
+  if (!admin?.storeId) {
+    return <div>Store not found</div>;
+  }
+  const payouts = await getStorePayouts({ storeId: admin.storeId });
+
+  const storeInfo = await getStoreInfo({ storeId: admin.storeId });
+  // console.log(storeInfo);
+
   const email = user?.emailAddresses[0]?.emailAddress;
 
   return (
@@ -68,6 +81,7 @@ const PayoutApprove = async () => {
                           amount={payout.originalAmount}
                           description={payout.payouts.description}
                           destination={payout.destination}
+                          storeId={admin.storeId}
                         />
                         <DeleteApprove
                           payoutId={payout.id}
@@ -76,6 +90,7 @@ const PayoutApprove = async () => {
                           amount={payout.originalAmount}
                           description={payout.payouts.description}
                           destination={payout.destination}
+                          storeId={admin.storeId}
                         />
                       </TableCell>
                     </TableRow>

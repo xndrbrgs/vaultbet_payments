@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const { amount, description, storeId } = await req.json();
 
-    console.log("Received create-payment request with data:", { amount, description, storeId });
+    // console.log("Received create-payment request with data:", { amount, description, storeId });
 
     if (!storeId) {
       return NextResponse.json(
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       where: { id: storeId },
     });
 
-    console.log("Fetched store from database:", store);
+    // console.log("Fetched store from database:", store);
 
     if (!store) {
       return NextResponse.json({ error: "Store not found" }, { status: 404 });
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const paymentData = await invoiceRes.json();
-    console.log("BTCPay invoice created:", paymentData);
+    // console.log("BTCPay invoice created:", paymentData);
     // await saveBTCPayment(paymentData);
 
     return NextResponse.json({

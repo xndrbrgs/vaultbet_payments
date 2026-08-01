@@ -2,15 +2,16 @@
 
 import axios from "axios";
 
-const RECEIVER_ID = process.env.RECEIVER_ID!; // Default receiver ID for BTCPay
-const BTCPAY_API_KEY = process.env.NEXT_PUBLIC_BTCPAY_API_KEY!;
+// const RECEIVER_ID = process.env.RECEIVER_ID!; 
+// const BTCPAY_API_KEY = process.env.NEXT_PUBLIC_BTCPAY_API_KEY!;
+// const BTCPAY_STORE_ID = process.env.NEXT_PUBLIC_BTCPAY_STORE_ID!;
 const BTCPAY_HOST = process.env.NEXT_PUBLIC_BTCPAY_HOST!;
-const BTCPAY_STORE_ID = process.env.NEXT_PUBLIC_BTCPAY_STORE_ID!;
 
 import { CoinGeckoClient } from "coingecko-api-v3";
 import { TransferStatus } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "../user-actions";
+import { NextResponse } from "next/server";
 const client = new CoinGeckoClient({ timeout: 10000, autoRetry: true });
 
 export async function saveBTCPayment(invoiceData: any) {
@@ -50,8 +51,8 @@ export async function getBTCPayments() {
     const invoices = Array.isArray(response.data.invoices)
       ? response.data.invoices
       : response.data?.id
-      ? [response.data]
-      : [];
+        ? [response.data]
+        : [];
 
     interface Invoice {
       id: string;
@@ -188,15 +189,29 @@ export async function getConfiguredOnchainProcessor() {
   return data;
 }
 
-export async function getStorePayouts() {
+export async function getStorePayouts({ storeId }: { storeId: string }) {
+  if (!storeId) {
+    return NextResponse.json(
+      { error: "storeId is required" },
+      { status: 400 },
+    );
+  }
+  const store = await prisma.stores.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
+
   const headers = {
-    Authorization: `token ${BTCPAY_API_KEY}`,
+    Authorization: `token ${store.btcpayApiKey}`,
     "Content-Type": "application/json",
   };
 
   // Step 1: Get all pull payments
   const payoutsList = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payouts`,
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/payouts`,
     { method: "GET", headers }
   );
 
@@ -228,21 +243,64 @@ export async function getStorePayouts() {
   return pullPaymentsWithPayouts;
 }
 
+export async function getStoreInfo({ storeId }: { storeId: string }) {
+  if (!storeId) {
+    return NextResponse.json(
+      { error: "storeId is required" },
+      { status: 400 },
+    );
+  }
+  const store = await prisma.stores.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
+
+  const headers = {
+    Authorization: `token ${store.btcpayApiKey}`,
+    "Content-Type": "application/json",
+  };
+
+  // Step 1: Get all pull payments
+  const payoutsList = await fetch(
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/lightning/BTC/invoices`,
+    { method: "GET", headers }
+  );
+
+  return await payoutsList.json();
+}
+
 export async function cancelPayout(
   payoutId: string,
   name: string,
   approvedBy: string,
   amount: string,
   description: string,
-  destination: string
+  destination: string,
+  storeId: string
 ) {
+  if (!storeId) {
+    return NextResponse.json(
+      { error: "storeId is required" },
+      { status: 400 },
+    );
+  }
+  const store = await prisma.stores.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
   const headers = {
-    Authorization: `token ${BTCPAY_API_KEY}`,
+    Authorization: `token ${store.btcpayApiKey}`,
     "Content-Type": "application/json",
   };
 
   const res = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payouts/${payoutId}`,
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/payouts/${payoutId}`,
     {
       method: "DELETE",
       headers,
@@ -250,7 +308,7 @@ export async function cancelPayout(
     }
   );
   if (!res.ok) {
-    throw new Error(`Payout failed to approve: ${res.statusText}`);
+    throw new Error(`Payout failed to cancel: ${res.statusText}`);
   }
 
   const payout = await res.json();
@@ -271,15 +329,29 @@ export async function approvePayout(
   approvedBy: string,
   amount: string,
   description: string,
-  destination: string
+  destination: string,
+  storeId: string
 ) {
+  if (!storeId) {
+    return NextResponse.json(
+      { error: "storeId is required" },
+      { status: 400 },
+    );
+  }
+  const store = await prisma.stores.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
   const headers = {
-    Authorization: `token ${BTCPAY_API_KEY}`,
+    Authorization: `token ${store.btcpayApiKey}`,
     "Content-Type": "application/json",
   };
 
   const res = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payouts/${payoutId}`,
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/payouts/${payoutId}`,
     {
       method: "POST",
       headers,
@@ -291,28 +363,28 @@ export async function approvePayout(
   }
 
   const payout = await res.json();
-  console.log(
-    "Payout approved:",
-    payout,
-    description,
-    name,
-    approvedBy,
-    destination
-  );
+  // console.log(
+  //   "Payout approved:",
+  //   payout,
+  //   description,
+  //   name,
+  //   approvedBy,
+  //   destination
+  // );
 
-  let savedPayout = await prisma.payouts.create({
-    data: {
-      payoutId: payout.id,
-      amount: payout.originalAmount,
-      description: description,
-      name: name,
-      approvedBy,
-      address: destination,
-      status: "PENDING", // from your enum
-    },
-  });
+  // let savedPayout = await prisma.payouts.create({
+  //   data: {
+  //     payoutId: payout.id,
+  //     amount: payout.originalAmount,
+  //     description: description,
+  //     name: name,
+  //     approvedBy,
+  //     address: destination,
+  //     status: "PENDING", // from your enum
+  //   },
+  // });
 
-  console.log("Payout saved to database:", savedPayout);
+  // console.log("Payout saved to database:", savedPayout);
 }
 
 export async function getCompletedPayouts() {

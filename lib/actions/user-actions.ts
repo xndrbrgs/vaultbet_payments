@@ -55,6 +55,23 @@ export async function getAdminUser({ userId }: { userId: string }) {
   }
 }
 
+export async function getStoreAdmin({ userId }: { userId: string }) {
+  try {
+    const adminUser = await prisma.storeAdmin.findUnique({
+      where: {
+        id: userId,
+      },
+    })
+
+    return adminUser
+  } catch (error) {
+    console.error('Error fetching admin user:', error)
+    throw error
+  }
+}
+
+
+
 export async function getStores() {
   try {
     const stores = await prisma.stores.findMany()

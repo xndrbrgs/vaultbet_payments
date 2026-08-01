@@ -65,7 +65,7 @@ export async function GET() {
     };
 
     // Log the userData object
-    console.log("User Data:", userData);
+    // console.log("User Data:", userData);
 
     // Check if a user with the same email already exists
     const existingUser = await prisma.user.findUnique({

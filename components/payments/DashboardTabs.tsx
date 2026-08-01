@@ -11,6 +11,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { PaymentForm } from "./PaymentForm";
 import { BTCPayoutForm } from "./BTCPayout";
+import { getBTCPay } from "@/lib/actions/server/admin-action";
 
 export async function DashboardTabs() {
   const { userId } = await auth();
@@ -19,6 +20,10 @@ export async function DashboardTabs() {
   }
   const userEmail = await getUserEmail({ userId });
   const stores = await getStores();
+  // const storeInfo = await getBTCPay({ storeId: stores[0].id });
+
+  // console.log("STORE INFO", storeInfo);
+
   return (
     <Tabs defaultValue="payment" className="max-w-7xl">
       <TabsList>

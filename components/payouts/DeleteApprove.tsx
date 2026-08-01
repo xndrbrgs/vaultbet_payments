@@ -11,6 +11,7 @@ export default function DeleteApprove({
   amount,
   description,
   destination,
+  storeId,
 }: {
   payoutId: string;
   name: string;
@@ -18,6 +19,7 @@ export default function DeleteApprove({
   amount: string;
   description: string;
   destination: string;
+  storeId: string;
 }) {
   const [loading, setLoading] = useState(false);
   console.log(payoutId, name, amount, description, destination, approvedBy);
@@ -31,14 +33,15 @@ export default function DeleteApprove({
         amount,
         description,
         destination,
-        approvedBy
+        approvedBy,
+        storeId,
       );
       alert("Payout cancelled successfully!");
       window.location.reload();
     } catch (error) {
-      console.error("Payout cancelled successfully! Error:", error);
+      console.error("Error cancelling payout:", error);
       window.location.reload();
-      alert("Failed to approve payout. Please try again.");
+      alert("Failed to cancel payout. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -47,7 +50,7 @@ export default function DeleteApprove({
   return (
     <Button
       type="submit"
-      className="hover:cursor-pointer bg-yellowish text-white hover:bg-yellowish/70"
+      className="hover:cursor-pointer bg-red-500 text-white hover:bg-yellowish/70"
       onClick={handleApprove}
       disabled={loading}
     >

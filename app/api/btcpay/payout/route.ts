@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     try {
         const { amount, recipientAddress, description, recipientEmail, personName, storeId } = await req.json();
 
-        console.log("Received redeem request with data:", { amount, description, storeId, recipientAddress, recipientEmail, personName });
+        // console.log("Received redeem request with data:", { amount, description, storeId, recipientAddress, recipientEmail, personName });
 
         if (!amount || !recipientAddress || !description || !recipientEmail || !storeId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -18,34 +18,18 @@ export async function POST(req: NextRequest) {
             where: { id: storeId },
         });
 
-        console.log("Fetched store from database:", store);
+        // console.log("Fetched store from database:", store);
 
         if (!store) {
             return NextResponse.json({ error: "Store not found" }, { status: 404 });
         }
 
         // Determine payment method automatically
-        const isLightning = recipientAddress.startsWith("ln");
+        const isBolt11 = recipientAddress.toLowerCase().startsWith("ln");
+        const isLightningAddress = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientAddress)
+            || recipientAddress.includes("$"); // some services use $cashtag style
+        const isLightning = isBolt11 || isLightningAddress;
         const paymentMethod = isLightning ? "BTC-LN" : "BTC";
-
-        // // 1️⃣ Get Payment Method
-        // const getPaymentMethod = await fetch(
-        //     `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payment-methods`,
-        //     {
-        //         method: "GET",
-        //         headers: {
-        //             Authorization: `token ${BTCPAY_API_KEY}`,
-        //             "Content-Type": "application/json",
-        //         }
-        //     }
-        // );
-        // if (!getPaymentMethod.ok) {
-        //     const err = await getPaymentMethod.text();
-        //     return NextResponse.json({ error: `BTCPay pool error: ${err}` }, { status: 500 });
-        // }
-
-        // const getPaymentMethodData = await getPaymentMethod.json();
-        // console.log("Payment methods:", getPaymentMethodData);
 
         // 1️⃣ Create Pull Payment
         const poolRes = await fetch(
@@ -62,8 +46,9 @@ export async function POST(req: NextRequest) {
                     amount,
                     "BOLT11Expiration": 0,
                     currency: "USD",
+                    payoutMethods: ["BTC", "BTC-LN"]
                     // autoApproveClaims: true, // auto-execute payouts
-                    paymentMethod,           // must match payout
+                    // paymentMethod,
                 }),
             }
         );
