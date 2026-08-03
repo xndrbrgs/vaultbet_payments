@@ -1,4 +1,5 @@
 import {
+  getBTCRates,
   getStoreInfo,
   getStorePayouts,
 } from "@/lib/actions/server/btc-actions";
@@ -21,6 +22,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import ApproveButton from "./PayoutButton";
 import DeleteApprove from "./DeleteApprove";
 import { getStoreAdmin } from "@/lib/actions/user-actions";
+import { satsToUsd } from "@/lib/tools";
 
 const PayoutApprove = async () => {
   const user = await currentUser();
@@ -32,17 +34,19 @@ const PayoutApprove = async () => {
   if (!admin?.storeId) {
     return <div>Store not found</div>;
   }
-  const payouts = await getStorePayouts({ storeId: admin.storeId });
 
-  const storeInfo = await getStoreInfo({ storeId: admin.storeId });
-  // console.log(storeInfo);
+  const payouts = await getStorePayouts({ storeId: admin.storeId });
+  // Fetch the current rate once per render — used only for display, not for any payout logic
+  const ratesRes = await getBTCRates({ storeId: admin.storeId });
+  const ratesData = await ratesRes.json();
+  const btcUsdRate: number | null = ratesRes.ok ? ratesData.rate : null;
 
   const email = user?.emailAddresses[0]?.emailAddress;
 
   return (
     <Card className="border border-gray-600 rounded-xl shadow-lg mt-3 max-w-7xl">
       <CardHeader>
-        <CardTitle className="text-2xl flex items-center gap-2">
+        <CardTitle className="text-2xl flex items-center gap-2 font-monaSans font-semibold">
           Payouts List
         </CardTitle>
         <CardDescription>
@@ -55,7 +59,7 @@ const PayoutApprove = async () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead>Amount (USD)</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Destination</TableHead>
                 <TableHead className="text-right">Approve?</TableHead>
@@ -65,39 +69,48 @@ const PayoutApprove = async () => {
               {payouts.length > 0 ? (
                 payouts
                   .filter((payout) => payout.state === "AwaitingApproval")
-                  .map((payout) => (
-                    <TableRow key={payout.id}>
-                      <TableCell>{payout.payouts.name}</TableCell>
-                      <TableCell>{payout.originalAmount}$</TableCell>
-                      <TableCell>{payout.payouts.description}</TableCell>
-                      <TableCell className="truncate max-w-xs">
-                        {payout.destination}
-                      </TableCell>
-                      <TableCell className="text-right space-x-5">
-                        <ApproveButton
-                          payoutId={payout.id}
-                          name={payout.payouts.name}
-                          approvedBy={email}
-                          amount={payout.originalAmount}
-                          description={payout.payouts.description}
-                          destination={payout.destination}
-                          storeId={admin.storeId}
-                        />
-                        <DeleteApprove
-                          payoutId={payout.id}
-                          name={payout.payouts.name}
-                          approvedBy={email}
-                          amount={payout.originalAmount}
-                          description={payout.payouts.description}
-                          destination={payout.destination}
-                          storeId={admin.storeId}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  .map((payout) => {
+                    const btcAmount = Number(payout.originalAmount);
+                    const sats = btcAmount * 1e8;
+                    const usdValue =
+                      btcUsdRate !== null ? satsToUsd(sats, btcUsdRate) : null;
+
+                    return (
+                      <TableRow key={payout.id}>
+                        <TableCell>{payout.payouts.name}</TableCell>
+                        <TableCell>
+                          {usdValue !== null ? `$${usdValue.toFixed(2)}` : "—"}
+                        </TableCell>
+                        <TableCell>{payout.payouts.description}</TableCell>
+                        <TableCell className="truncate max-w-[100px]">
+                          {payout.destination}
+                        </TableCell>
+                        <TableCell className="text-right space-x-5">
+                          <ApproveButton
+                            payoutId={payout.id}
+                            name={payout.payouts.name}
+                            approvedBy={email}
+                            amount={payout.originalAmount}
+                            description={payout.payouts.description}
+                            destination={payout.destination}
+                            storeId={admin.storeId}
+                          />
+                          <DeleteApprove
+                            payoutId={payout.id}
+                            name={payout.payouts.name}
+                            approvedBy={email}
+                            amount={payout.originalAmount}
+                            description={payout.payouts.description}
+                            destination={payout.destination}
+                            storeId={admin.storeId}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
               ) : (
                 <TableRow>
-                  <TableCell className="text-gray-500" colSpan={5}>
+                  <TableCell className="text-gray-500" colSpan={6}>
                     No payouts available.
                   </TableCell>
                 </TableRow>

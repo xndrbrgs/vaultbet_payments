@@ -13,6 +13,8 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "../user-actions";
 import { NextResponse } from "next/server";
 const client = new CoinGeckoClient({ timeout: 10000, autoRetry: true });
+let cachedRate: { price: number; fetchedAt: number; storeId: string } | null = null;
+const CACHE_TTL_MS = 30_000;
 
 export async function saveBTCPayment(invoiceData: any) {
   const user = await getCurrentUser();
@@ -265,11 +267,60 @@ export async function getStoreInfo({ storeId }: { storeId: string }) {
 
   // Step 1: Get all pull payments
   const payoutsList = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/lightning/BTC/invoices`,
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/pull-payments`,
     { method: "GET", headers }
   );
 
   return await payoutsList.json();
+}
+
+export async function getBTCRates({ storeId }: { storeId: string }) {
+    if (!storeId) {
+        return NextResponse.json({ error: "storeId is required" }, { status: 400 });
+    }
+
+    if (
+        cachedRate &&
+        cachedRate.storeId === storeId &&
+        Date.now() - cachedRate.fetchedAt < CACHE_TTL_MS
+    ) {
+        return NextResponse.json({ currencyPair: "BTC_USD", rate: cachedRate.price });
+    }
+
+    const store = await prisma.stores.findUnique({
+        where: { id: storeId },
+    });
+
+    if (!store) {
+        return NextResponse.json({ error: "Store not found" }, { status: 404 });
+    }
+
+    const headers = {
+        Authorization: `token ${store.btcpayApiKey}`,
+        "Content-Type": "application/json",
+    };
+
+    const res = await fetch(
+        `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/rates?currencyPair=BTC_USD`,
+        { method: "GET", headers }
+    );
+
+    if (!res.ok) {
+        const err = await res.text();
+        return NextResponse.json({ error: `BTCPay rates error: ${err}` }, { status: 500 });
+    }
+
+    const data = await res.json();
+    const rateEntry = data.find((r: any) => r.currencyPair === "BTC_USD");
+
+    if (!rateEntry?.rate) {
+        return NextResponse.json({ error: "BTC_USD rate not found in BTCPay response" }, { status: 500 });
+    }
+
+    const price = parseFloat(rateEntry.rate);
+    cachedRate = { price, fetchedAt: Date.now(), storeId };
+
+    return NextResponse.json({ currencyPair: "BTC_USD", rate: price });
 }
 
 export async function cancelPayout(

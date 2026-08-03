@@ -22,7 +22,7 @@ export default function DeleteApprove({
   storeId: string;
 }) {
   const [loading, setLoading] = useState(false);
-  console.log(payoutId, name, amount, description, destination, approvedBy);
+  // console.log(payoutId, name, amount, description, destination, approvedBy);
 
   const handleApprove = async () => {
     setLoading(true);

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "@/components/ui/toast";
-import { BadgeDollarSign, Bitcoin, ChevronDown } from "lucide-react";
+import {  ChevronDown, Zap } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -35,10 +35,10 @@ import Image from "next/image";
 import { SlideTransition } from "./anims/AnimatedCard";
 
 const formSchema = z.object({
-  amount: z
-    .number()
-    .positive("Amount must be greater than 0")
-    .multipleOf(0.01, "Amount can have at most 2 decimal places"),
+//   amount: z
+//     .number()
+//     .positive("Amount must be greater than 0")
+//     .multipleOf(0.01, "Amount can have at most 2 decimal places"),
   recipientEmail: z.string().email("Invalid email address"),
   personName: z.string().min(1, "Recipient name is required"),
   recipientAddress: z.string().min(1, "Recipient BTC address is required"),
@@ -55,7 +55,7 @@ type PaymentProps = {
   }>;
 };
 
-export function BTCPayoutForm({ email, stores }: PaymentProps) {
+export function BTCLightningForm({ email, stores }: PaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
@@ -77,7 +77,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: 0,
+    //   amount: 0,
       recipientEmail: email,
       recipientAddress: "",
       paymentDescription: "",
@@ -89,11 +89,11 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/btcpay/payout", {
+      const res = await fetch("/api/btcpay/payout/lightning", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: values.amount,
+        //   amount: values.amount,
           description: values.paymentDescription,
           recipientEmail: email,
           recipientAddress: values.recipientAddress,
@@ -130,11 +130,11 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
         >
           <CardHeader className="border-b border-gray-600">
             <CardTitle className="text-2xl md:text-3xl font-monaSans font-semibold flex items-center space-x-3">
-              <Bitcoin className="w-7 h-7 text-green-400" />
-              <span>BTC On-Chain Payout</span>
+              <Zap className="w-7 h-7 text-yellow-500" />
+              <span>BTC Lightning Payout</span>
             </CardTitle>
             <CardDescription className="text-sm text-gray-700">
-              Receive BTC payouts directly to your on-chain BTC address!
+              Receive BTC payouts directly to your Lightning BTC address!
             </CardDescription>
           </CardHeader>
 
@@ -194,7 +194,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                     />
                   </div>
 
-                  <div className="col-span-12 lg:col-span-6 pt-0 md:pt-3">
+                  <div className="col-span-12 pt-0 md:pt-3">
                     <Controller
                       name="recipientAddress"
                       control={form.control}
@@ -218,7 +218,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                     />
                   </div>
 
-                  <div className="col-span-12 lg:col-span-6 pt-0 md:pt-3">
+                  {/* <div className="col-span-12 lg:col-span-6 pt-0 md:pt-3">
                     <Controller
                       name="amount"
                       control={form.control}
@@ -259,7 +259,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                         </Field>
                       )}
                     />
-                  </div>
+                  </div> */}
 
                   <div className="col-span-12 mt-3">
                     <Controller
@@ -385,73 +385,6 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                       }}
                     />
                   </div>
-
-                  {/* <div className="col-span-12 mt-3">
-                  <Controller
-                    name="storeId"
-                    control={form.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="payment-form-storeId">
-                          Game Provider
-                        </FieldLabel>
-                        <Select
-                          name={field.name}
-                          value={field.value}
-                          onValueChange={(value) => {
-                            const selectedStore = stores.find(
-                              (store) => store.id === value,
-                            );
-                            field.onChange(value);
-                            form.setValue("storeId", selectedStore?.id || "");
-                          }}
-                        >
-                          <SelectTrigger
-                            id="payment-form-storeId"
-                            aria-invalid={fieldState.invalid}
-                          >
-                            {field.value ? (
-                              <span className="flex items-center space-x-2">
-                                {
-                                  stores.find(
-                                    (store) => store.id === field.value,
-                                  )?.name
-                                }
-                              </span>
-                            ) : (
-                              <SelectValue placeholder="Select a store" />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stores.map((store) => (
-                              <SelectItem key={store.id} value={store.id}>
-                                <div className="flex">
-                                  <div className="relative flex items-center text-center space-x-3">
-                                    <Image
-                                      src={store.storeImg}
-                                      alt={store.name}
-                                      width={60}
-                                      height={60}
-                                    />
-                                    <span className="text-sm">
-                                      {store.name}
-                                    </span>
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FieldDescription>
-                          Select the game provider for your transfer.
-                        </FieldDescription>
-                        {fieldState.invalid && (
-                          <FieldError errors={[fieldState.error]} />
-                        )}
-                      </Field>
-                    )}
-                  />
-                </div> */}
                 </FieldGroup>
 
                 <div className="mb-5 flex items-center w-full justify-center">
@@ -460,7 +393,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                     disabled={isLoading}
                     className="my-4 w-fit cursor-pointer"
                   >
-                    {isLoading ? "Processing..." : "Request BTC Payout"}
+                    {isLoading ? "Processing..." : "Request BTC Lightning Payout"}
                   </Button>
                 </div>
               </form>
