@@ -201,8 +201,13 @@ export function BTCLightningForm({ email, stores }: PaymentProps) {
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
                           <FieldLabel htmlFor="btc-payout-recipientAddress">
-                            Lightning BTC Address (Max Cashout Per Day:
-                            <span className="text-green-500">$300</span>)
+                            <div className="flex flex-col gap-1">
+                              <span>Lightning BTC Address</span>
+                              <p className="text-gray-500">
+                                Max Cashout Per Day:{" "}
+                                <span className="text-green-500">$300</span>
+                              </p>
+                            </div>
                           </FieldLabel>
                           <Input
                             id="btc-payout-recipientAddress"

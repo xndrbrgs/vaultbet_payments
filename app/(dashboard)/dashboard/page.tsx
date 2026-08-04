@@ -1,3 +1,4 @@
+import BTCBalance from "@/components/btcpay/BTCBalance";
 import { DashboardTabs } from "@/components/payments/DashboardTabs";
 import PayoutApprove from "@/components/payouts/PayoutApprove";
 import { getAdminUser } from "@/lib/actions/user-actions";
@@ -15,6 +16,7 @@ export default async function DashboardPage() {
   if (!adminUser) {
     return (
       <>
+        <BTCBalance />
         <DashboardTabs />
         <PayoutApprove />
       </>

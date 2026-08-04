@@ -123,15 +123,29 @@ export async function getBTCPayments() {
 }
 
 
-export async function getBTCPayBalances() {
+export async function getBTCPayBalances({ storeId }: { storeId: string }) {
+  if (!storeId) {
+    return NextResponse.json(
+      { error: "storeId is required" },
+      { status: 400 },
+    );
+  }
+  const store = await prisma.stores.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
+
   const headers = {
-    Authorization: `token ${BTCPAY_API_KEY}`,
+    Authorization: `token ${store.btcpayApiKey}`,
     "Content-Type": "application/json",
   };
 
   // On-chain wallet (BTC)
   const onchainRes = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payment-methods/BTC-CHAIN/wallet`,
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/payment-methods/BTC-CHAIN/wallet`,
     { method: "GET", headers }
   );
   if (!onchainRes.ok) {
@@ -140,55 +154,64 @@ export async function getBTCPayBalances() {
   const onchainData = await onchainRes.json();
 
   const allMethods = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payment-methods/BTC-CHAIN/wallet/address`,
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/payment-methods/BTC-CHAIN/wallet/address`,
     { method: "GET", headers }
   );
-  if (!onchainRes.ok) {
-    throw new Error(`Onchain fetch failed: ${onchainRes.statusText}`);
+  if (!allMethods.ok) {
+    throw new Error(`Onchain address fetch failed: ${allMethods.statusText}`);
   }
   const allMethodsRes = await allMethods.json();
 
-  return { onchainData, allMethodsRes };
+  // Lightning node balance (onchain + offchain/channel breakdown)
+  const lightningRes = await fetch(
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/lightning/BTC/balance`,
+    { method: "GET", headers }
+  );
+  if (!lightningRes.ok) {
+    throw new Error(`Lightning fetch failed: ${lightningRes.statusText}`);
+  }
+  const lightningData = await lightningRes.json();
+
+  return { onchainData, allMethodsRes, lightningData };
 }
 
-export async function getBTCBalanceInUSD() {
+export async function getBTCBalanceInUSD({ storeId }: { storeId: string }) {
   try {
-    // Get BTC balance from BTCPay
-    const { onchainData } = await getBTCPayBalances();
-    // Extract the BTC balance (adjust if your API uses a different field)
-    const btcBalance = parseFloat(onchainData.balance);
-    // Get live BTC price in USD
+    // Get on-chain + lightning balances from BTCPay
+    const { onchainData, lightningData } = await getBTCPayBalances({ storeId });
+
+    const onchainBalance = parseFloat(onchainData.balance);
+
+    // Lightning: "offchain.local" is in millisatoshis (msat) — convert to BTC
+    const lightningLocalMsat = parseFloat(lightningData.offchain?.local ?? "0");
+    const lightningBalance = lightningLocalMsat / 1e11; // msat -> BTC
+
+    const totalBtcBalance = onchainBalance + lightningBalance;
+
+    // Get live BTC price in USD via CoinGecko
     const priceData = await client.simplePrice({
       ids: "bitcoin",
       vs_currencies: "usd",
     });
     const btcPriceUSD = priceData.bitcoin.usd;
-    // Calculate value in USD
-    const balanceUSD = btcBalance * btcPriceUSD;
 
-    return { btcBalance, btcPriceUSD, balanceUSD };
+    const onchainUSD = onchainBalance * btcPriceUSD;
+    const lightningUSD = lightningBalance * btcPriceUSD;
+    const totalUSD = totalBtcBalance * btcPriceUSD;
+
+    return {
+      onchainBalance,
+      lightningBalance,
+      totalBtcBalance,
+      btcPriceUSD,
+      onchainUSD,
+      lightningUSD,
+      totalUSD,
+    };
   } catch (error) {
     console.error("Error fetching BTC balance or price:", error);
     throw error;
   }
-}
-
-export async function getConfiguredOnchainProcessor() {
-  const headers = {
-    Authorization: `token ${BTCPAY_API_KEY}`,
-    "Content-Type": "application/json",
-  };
-
-  const res = await fetch(
-    `${BTCPAY_HOST}/api/v1/stores/${BTCPAY_STORE_ID}/payout-processors/OnChainAutomatedPayoutSenderFactory/BTC-CHAIN`,
-
-    { method: "GET", headers }
-  );
-  if (!res.ok) {
-    throw new Error(`Onchain fetch failed: ${res.statusText}`);
-  }
-  const data = await res.json();
-  return data;
 }
 
 export async function getStorePayouts({ storeId }: { storeId: string }) {
@@ -275,52 +298,52 @@ export async function getStoreInfo({ storeId }: { storeId: string }) {
 }
 
 export async function getBTCRates({ storeId }: { storeId: string }) {
-    if (!storeId) {
-        return NextResponse.json({ error: "storeId is required" }, { status: 400 });
-    }
+  if (!storeId) {
+    return NextResponse.json({ error: "storeId is required" }, { status: 400 });
+  }
 
-    if (
-        cachedRate &&
-        cachedRate.storeId === storeId &&
-        Date.now() - cachedRate.fetchedAt < CACHE_TTL_MS
-    ) {
-        return NextResponse.json({ currencyPair: "BTC_USD", rate: cachedRate.price });
-    }
+  if (
+    cachedRate &&
+    cachedRate.storeId === storeId &&
+    Date.now() - cachedRate.fetchedAt < CACHE_TTL_MS
+  ) {
+    return NextResponse.json({ currencyPair: "BTC_USD", rate: cachedRate.price });
+  }
 
-    const store = await prisma.stores.findUnique({
-        where: { id: storeId },
-    });
+  const store = await prisma.stores.findUnique({
+    where: { id: storeId },
+  });
 
-    if (!store) {
-        return NextResponse.json({ error: "Store not found" }, { status: 404 });
-    }
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
 
-    const headers = {
-        Authorization: `token ${store.btcpayApiKey}`,
-        "Content-Type": "application/json",
-    };
+  const headers = {
+    Authorization: `token ${store.btcpayApiKey}`,
+    "Content-Type": "application/json",
+  };
 
-    const res = await fetch(
-        `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/rates?currencyPair=BTC_USD`,
-        { method: "GET", headers }
-    );
+  const res = await fetch(
+    `${BTCPAY_HOST}/api/v1/stores/${store.btcpayStoreId}/rates?currencyPair=BTC_USD`,
+    { method: "GET", headers }
+  );
 
-    if (!res.ok) {
-        const err = await res.text();
-        return NextResponse.json({ error: `BTCPay rates error: ${err}` }, { status: 500 });
-    }
+  if (!res.ok) {
+    const err = await res.text();
+    return NextResponse.json({ error: `BTCPay rates error: ${err}` }, { status: 500 });
+  }
 
-    const data = await res.json();
-    const rateEntry = data.find((r: any) => r.currencyPair === "BTC_USD");
+  const data = await res.json();
+  const rateEntry = data.find((r: any) => r.currencyPair === "BTC_USD");
 
-    if (!rateEntry?.rate) {
-        return NextResponse.json({ error: "BTC_USD rate not found in BTCPay response" }, { status: 500 });
-    }
+  if (!rateEntry?.rate) {
+    return NextResponse.json({ error: "BTC_USD rate not found in BTCPay response" }, { status: 500 });
+  }
 
-    const price = parseFloat(rateEntry.rate);
-    cachedRate = { price, fetchedAt: Date.now(), storeId };
+  const price = parseFloat(rateEntry.rate);
+  cachedRate = { price, fetchedAt: Date.now(), storeId };
 
-    return NextResponse.json({ currencyPair: "BTC_USD", rate: price });
+  return NextResponse.json({ currencyPair: "BTC_USD", rate: price });
 }
 
 export async function cancelPayout(
