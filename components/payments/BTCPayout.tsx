@@ -146,7 +146,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="flex flex-col gap-y-5"
               >
-                <FieldGroup className="grid grid-cols-12 gap-x-5 gap-y-6 lg:gap-y-0 space-y-0">
+                <FieldGroup className="grid grid-cols-12 gap-x-5 gap-y-6 lg:gap-y-0 space-y-0 mt-4">
                   <div className="col-span-12 lg:col-span-6 pt-3">
                     <Controller
                       name="personName"
@@ -458,7 +458,7 @@ export function BTCPayoutForm({ email, stores }: PaymentProps) {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="my-4 w-fit cursor-pointer"
+                    className="mt-4 w-fit cursor-pointer"
                   >
                     {isLoading ? "Processing..." : "Request BTC Payout"}
                   </Button>

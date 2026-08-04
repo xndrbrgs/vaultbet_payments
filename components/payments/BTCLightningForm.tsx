@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "@/components/ui/toast";
-import {  ChevronDown, Zap } from "lucide-react";
+import { ChevronDown, Zap } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -35,10 +35,10 @@ import Image from "next/image";
 import { SlideTransition } from "./anims/AnimatedCard";
 
 const formSchema = z.object({
-//   amount: z
-//     .number()
-//     .positive("Amount must be greater than 0")
-//     .multipleOf(0.01, "Amount can have at most 2 decimal places"),
+  //   amount: z
+  //     .number()
+  //     .positive("Amount must be greater than 0")
+  //     .multipleOf(0.01, "Amount can have at most 2 decimal places"),
   recipientEmail: z.string().email("Invalid email address"),
   personName: z.string().min(1, "Recipient name is required"),
   recipientAddress: z.string().min(1, "Recipient BTC address is required"),
@@ -77,7 +77,7 @@ export function BTCLightningForm({ email, stores }: PaymentProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-    //   amount: 0,
+      //   amount: 0,
       recipientEmail: email,
       recipientAddress: "",
       paymentDescription: "",
@@ -93,7 +93,7 @@ export function BTCLightningForm({ email, stores }: PaymentProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-        //   amount: values.amount,
+          //   amount: values.amount,
           description: values.paymentDescription,
           recipientEmail: email,
           recipientAddress: values.recipientAddress,
@@ -146,7 +146,7 @@ export function BTCLightningForm({ email, stores }: PaymentProps) {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="flex flex-col gap-y-5"
               >
-                <FieldGroup className="grid grid-cols-12 gap-x-5 gap-y-6 lg:gap-y-0 space-y-0">
+                <FieldGroup className="grid grid-cols-12 gap-x-5 gap-y-6 lg:gap-y-0 space-y-0 mt-4">
                   <div className="col-span-12 lg:col-span-6 pt-3">
                     <Controller
                       name="personName"
@@ -201,7 +201,8 @@ export function BTCLightningForm({ email, stores }: PaymentProps) {
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
                           <FieldLabel htmlFor="btc-payout-recipientAddress">
-                            BTC Address
+                            Lightning BTC Address (Max Cashout Per Day:
+                            <span className="text-green-500">$300</span>)
                           </FieldLabel>
                           <Input
                             id="btc-payout-recipientAddress"
@@ -391,9 +392,11 @@ export function BTCLightningForm({ email, stores }: PaymentProps) {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="my-4 w-fit cursor-pointer"
+                    className="mt-4 w-fit cursor-pointer"
                   >
-                    {isLoading ? "Processing..." : "Request BTC Lightning Payout"}
+                    {isLoading
+                      ? "Processing..."
+                      : "Request BTC Lightning Payout"}
                   </Button>
                 </div>
               </form>
